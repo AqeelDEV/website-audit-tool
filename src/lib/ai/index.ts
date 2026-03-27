@@ -187,7 +187,7 @@ async function callOpenRouterWithRetry(
  */
 export async function analyzeWithAI(
   metrics: PageMetrics
-): Promise<{ analysis: AIAnalysis; logId: string }> {
+): Promise<{ analysis: AIAnalysis; logId: string; log: PromptLog }> {
   const apiKey = getApiKey();
   const systemPrompt = buildSystemPrompt();
   const userPrompt = buildUserPrompt(metrics);
@@ -232,5 +232,5 @@ export async function analyzeWithAI(
 
   await savePromptLog(log);
 
-  return { analysis, logId };
+  return { analysis, logId, log };
 }
