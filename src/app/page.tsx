@@ -269,7 +269,7 @@ export default function Home() {
 
             {/* Prompt Log */}
             <section>
-              <PromptLogViewer logId={result.logId} />
+              <PromptLogViewer log={result.promptLog} />
             </section>
           </div>
         )}
