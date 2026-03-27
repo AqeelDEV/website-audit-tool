@@ -37,9 +37,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const metrics = await scrapePageMetrics(url);
-    const { analysis, logId } = await analyzeWithAI(metrics);
+    const { analysis, logId, log } = await analyzeWithAI(metrics);
 
-    const result: AuditResult = { metrics, analysis, logId };
+    const result: AuditResult = { metrics, analysis, logId, promptLog: log };
     return NextResponse.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "An unexpected error occurred";
