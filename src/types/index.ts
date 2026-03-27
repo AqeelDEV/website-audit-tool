@@ -60,6 +60,7 @@ export interface AuditResult {
   metrics: PageMetrics;
   analysis: AIAnalysis;
   logId: string;
+  promptLog: PromptLog;
 }
 
 /** Full prompt log entry for AI transparency */
