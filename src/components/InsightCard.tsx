@@ -1,6 +1,8 @@
 "use client";
 
+import { m } from "motion/react";
 import { AuditInsight } from "@/types";
+import { fadeUp } from "@/lib/animations";
 
 const categoryLabels: Record<AuditInsight["category"], string> = {
   seo: "SEO",
@@ -10,21 +12,24 @@ const categoryLabels: Record<AuditInsight["category"], string> = {
   ux: "UX",
 };
 
-const severityStyles: Record<AuditInsight["severity"], { bg: string; text: string; dot: string }> = {
+const severityStyles: Record<
+  AuditInsight["severity"],
+  { badge: string; dot: string; text: string }
+> = {
   good: {
-    bg: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    badge: "bg-[var(--status-good-bg)] text-status-good",
+    dot: "bg-status-good shadow-[0_0_6px_var(--status-good)]",
     text: "Good",
-    dot: "bg-green-500",
   },
   warning: {
-    bg: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+    badge: "bg-[var(--status-warning-bg)] text-status-warning",
+    dot: "bg-status-warning shadow-[0_0_6px_var(--status-warning)]",
     text: "Warning",
-    dot: "bg-amber-500",
   },
   critical: {
-    bg: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+    badge: "bg-[var(--status-critical-bg)] text-status-critical",
+    dot: "bg-status-critical shadow-[0_0_6px_var(--status-critical)]",
     text: "Critical",
-    dot: "bg-red-500",
   },
 };
 
@@ -36,34 +41,36 @@ export default function InsightCard({ insight }: InsightCardProps) {
   const severity = severityStyles[insight.severity];
 
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-[var(--card-bg)] p-5">
-      <div className="flex flex-wrap items-center gap-2 mb-3">
-        <span className="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+    <m.div
+      variants={fadeUp}
+      whileHover={{ y: -3 }}
+      className="glass rounded-xl p-5 transition-shadow duration-300 hover:shadow-card-hover"
+    >
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center rounded-md border border-[var(--accent-violet-soft)] bg-glass-strong px-2.5 py-0.5 text-xs font-medium text-accent-cyan">
           {categoryLabels[insight.category]}
         </span>
         <span
-          className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-medium ${severity.bg}`}
+          className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-medium ${severity.badge}`}
         >
           <span className={`h-1.5 w-1.5 rounded-full ${severity.dot}`} />
           {severity.text}
         </span>
       </div>
-      <h3 className="text-base font-semibold mb-2">{insight.title}</h3>
-      <p className="text-sm text-[var(--muted)] leading-relaxed">
-        {insight.analysis}
-      </p>
+      <h3 className="mb-2 text-base font-semibold">{insight.title}</h3>
+      <p className="text-sm leading-relaxed text-muted">{insight.analysis}</p>
       {insight.metricReferences.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {insight.metricReferences.map((ref, i) => (
             <span
               key={i}
-              className="inline-block rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+              className="inline-block rounded border border-glass-border bg-glass-strong px-2 py-0.5 font-mono text-xs text-muted"
             >
               {ref}
             </span>
           ))}
         </div>
       )}
-    </div>
+    </m.div>
   );
 }
