@@ -1,11 +1,19 @@
 "use client";
 
 import { useState, FormEvent, useEffect } from "react";
+import { AnimatePresence, m } from "motion/react";
 import { AuditResult } from "@/types";
 import MetricsCard from "@/components/MetricsCard";
 import InsightCard from "@/components/InsightCard";
 import RecommendationList from "@/components/RecommendationList";
 import PromptLogViewer from "@/components/PromptLogViewer";
+import AnalysisLoader from "@/components/AnalysisLoader";
+import {
+  fadeUp,
+  staggerContainer,
+  viewTransition,
+  viewportOnce,
+} from "@/lib/animations";
 
 type LoadingPhase = "scraping" | "analyzing";
 
@@ -54,6 +62,14 @@ export default function Home() {
 
   const metrics = result?.metrics;
 
+  const view = loading
+    ? "loading"
+    : error
+      ? "error"
+      : result
+        ? "results"
+        : "idle";
+
   const altStatus =
     metrics && metrics.images.total > 0
       ? metrics.images.missingAltPercent > 50
@@ -100,179 +116,227 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero */}
-      <header className="border-b border-[var(--border)] bg-[var(--card-bg)]">
-        <div className="mx-auto max-w-4xl px-4 py-16 text-center">
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Website Audit Tool
-          </h1>
-          <p className="mt-3 text-[var(--muted)]">
-            AI-powered page analysis for SEO, content, and UX
-          </p>
+      <section className="relative overflow-hidden">
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="animate-pulse-glow absolute -top-32 left-1/2 h-[36rem] w-[36rem] -translate-x-1/2 bg-radial-glow blur-3xl" />
+          <div className="animate-pulse-glow absolute -right-40 -top-16 h-[28rem] w-[28rem] bg-radial-glow-cyan blur-3xl [animation-delay:2s]" />
+        </div>
 
-          <form
+        <m.div
+          variants={staggerContainer(0.12, 0)}
+          initial="hidden"
+          animate="show"
+          className="relative mx-auto max-w-4xl px-4 py-20 text-center"
+        >
+          <m.h1
+            variants={fadeUp}
+            className="font-display text-4xl font-bold tracking-tight sm:text-5xl"
+          >
+            Audit any website{" "}
+            <span className="bg-accent-gradient bg-clip-text text-transparent">
+              with AI
+            </span>
+          </m.h1>
+          <m.p variants={fadeUp} className="mx-auto mt-4 max-w-xl text-muted">
+            AI-powered page analysis for SEO, content, and UX, all grounded in
+            real scraped metrics.
+          </m.p>
+
+          <m.form
+            variants={fadeUp}
             onSubmit={handleSubmit}
-            className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center"
+            className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center"
           >
             <input
               type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="Enter a URL (e.g. example.com)"
-              className="h-11 flex-1 rounded-lg border border-[var(--border)] bg-[var(--background)] px-4 text-sm outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400 dark:focus:border-gray-500 dark:focus:ring-gray-500 sm:max-w-md"
+              className="glass h-12 flex-1 rounded-xl px-4 text-sm outline-none transition-[border-color,box-shadow] duration-300 placeholder:text-muted/70 focus:border-accent-violet focus:shadow-glow-violet sm:max-w-md"
               disabled={loading}
             />
-            <button
+            <m.button
               type="submit"
               disabled={loading || !url.trim()}
-              className="h-11 rounded-lg bg-foreground px-6 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              className="h-12 rounded-xl bg-accent-gradient px-7 text-sm font-medium text-white shadow-glow-violet transition-shadow duration-300 hover:shadow-glow-cyan disabled:opacity-50"
             >
               {loading ? "Analyzing..." : "Run Audit"}
-            </button>
-          </form>
-        </div>
-      </header>
+            </m.button>
+          </m.form>
+        </m.div>
+      </section>
 
-      <main className="mx-auto max-w-4xl px-4 py-8">
-        {/* Loading */}
-        {loading && (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-foreground" />
-            <p className="mt-4 text-sm text-[var(--muted)]">
-              {loadingPhase === "scraping"
-                ? "Scraping page metrics..."
-                : "Generating AI insights..."}
-            </p>
-          </div>
-        )}
+      <main className="mx-auto min-h-[40vh] max-w-4xl px-4 py-8">
+        <AnimatePresence mode="wait">
+          {/* Loading */}
+          {view === "loading" && (
+            <m.div key="loading" {...viewTransition}>
+              <AnalysisLoader phase={loadingPhase} />
+            </m.div>
+          )}
 
-        {/* Error */}
-        {error && !loading && (
-          <div className="rounded-lg border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/30">
-            <p className="text-sm font-medium text-red-800 dark:text-red-400">
-              {error}
-            </p>
-          </div>
-        )}
+          {/* Error */}
+          {view === "error" && (
+            <m.div
+              key="error"
+              {...viewTransition}
+              className="glass rounded-xl border-[var(--status-critical-border)] p-5"
+            >
+              <p className="text-sm font-medium text-status-critical">
+                {error}
+              </p>
+            </m.div>
+          )}
 
-        {/* Results */}
-        {result && metrics && !loading && (
-          <div className="space-y-10">
-            <p className="text-sm text-[var(--muted)]">
-              Results for{" "}
-              <span className="font-medium text-[var(--foreground)]">
-                {metrics.url}
-              </span>{" "}
-              &middot; scraped {new Date(metrics.scrapedAt).toLocaleString()}
-            </p>
-
-            {/* Factual Metrics */}
-            <section>
-              <h2 className="text-xl font-semibold mb-4">Factual Metrics</h2>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                <MetricsCard
-                  label="Word Count"
-                  value={metrics.wordCount.toLocaleString()}
-                  status={wordStatus}
-                  detail={metrics.wordCount < 300 ? "Thin content" : undefined}
-                />
-                <MetricsCard
-                  label="H1 Tags"
-                  value={metrics.headings.h1.count}
-                  status={h1Status}
-                  detail={
-                    metrics.headings.h1.count === 1
-                      ? metrics.headings.h1.texts[0]
-                      : metrics.headings.h1.count === 0
-                        ? "No H1 found"
-                        : `${metrics.headings.h1.count} H1s (should be 1)`
-                  }
-                />
-                <MetricsCard
-                  label="H2 Tags"
-                  value={metrics.headings.h2.count}
-                />
-                <MetricsCard
-                  label="H3 Tags"
-                  value={metrics.headings.h3.count}
-                />
-                <MetricsCard
-                  label="CTAs Found"
-                  value={metrics.ctaCount}
-                  status={metrics.ctaCount === 0 ? "warning" : "good"}
-                  detail={
-                    metrics.ctaTexts.length > 0
-                      ? metrics.ctaTexts.slice(0, 3).join(", ")
-                      : "No CTAs detected"
-                  }
-                />
-                <MetricsCard
-                  label="Internal Links"
-                  value={metrics.links.internal}
-                />
-                <MetricsCard
-                  label="External Links"
-                  value={metrics.links.external}
-                />
-                <MetricsCard
-                  label="Images"
-                  value={metrics.images.total}
-                  status={altStatus}
-                  detail={`${metrics.images.missingAlt} missing alt (${metrics.images.missingAltPercent}%)`}
-                />
-                <MetricsCard
-                  label="Meta Title"
-                  value={`${metrics.meta.titleLength} chars`}
-                  status={titleLenStatus}
-                  detail={
-                    metrics.meta.title
-                      ? metrics.meta.title.slice(0, 60)
-                      : "No title found"
-                  }
-                />
-                <MetricsCard
-                  label="Meta Description"
-                  value={`${metrics.meta.descriptionLength} chars`}
-                  status={descLenStatus}
-                  detail={
-                    metrics.meta.description
-                      ? metrics.meta.description.slice(0, 80) +
-                        (metrics.meta.description.length > 80 ? "..." : "")
-                      : "No description found"
-                  }
-                />
-              </div>
-            </section>
-
-            {/* AI Insights & Recommendations */}
-            <section>
-              <h2 className="text-xl font-semibold mb-2">
-                AI Insights & Recommendations
-              </h2>
-              <p className="text-sm text-[var(--muted)] mb-4">
-                {result.analysis.summary}
+          {/* Results */}
+          {view === "results" && result && metrics && (
+            <m.div key="results" {...viewTransition} className="space-y-12">
+              <p className="text-sm text-muted">
+                Results for{" "}
+                <span className="font-medium text-foreground">
+                  {metrics.url}
+                </span>{" "}
+                &middot; scraped {new Date(metrics.scrapedAt).toLocaleString()}
               </p>
 
-              <h3 className="text-base font-medium mb-3">Insights</h3>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {result.analysis.insights.map((insight, i) => (
-                  <InsightCard key={i} insight={insight} />
-                ))}
-              </div>
+              {/* Factual Metrics — visible on results mount, choreographed with view enter */}
+              <section>
+                <h2 className="font-display mb-4 text-xl font-bold">
+                  Factual Metrics
+                </h2>
+                <m.div
+                  variants={staggerContainer(0.05)}
+                  initial="hidden"
+                  animate="show"
+                  className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+                >
+                  <MetricsCard
+                    label="Word Count"
+                    value={metrics.wordCount}
+                    status={wordStatus}
+                    detail={metrics.wordCount < 300 ? "Thin content" : undefined}
+                  />
+                  <MetricsCard
+                    label="H1 Tags"
+                    value={metrics.headings.h1.count}
+                    status={h1Status}
+                    detail={
+                      metrics.headings.h1.count === 1
+                        ? metrics.headings.h1.texts[0]
+                        : metrics.headings.h1.count === 0
+                          ? "No H1 found"
+                          : `${metrics.headings.h1.count} H1s (should be 1)`
+                    }
+                  />
+                  <MetricsCard
+                    label="H2 Tags"
+                    value={metrics.headings.h2.count}
+                  />
+                  <MetricsCard
+                    label="H3 Tags"
+                    value={metrics.headings.h3.count}
+                  />
+                  <MetricsCard
+                    label="CTAs Found"
+                    value={metrics.ctaCount}
+                    status={metrics.ctaCount === 0 ? "warning" : "good"}
+                    detail={
+                      metrics.ctaTexts.length > 0
+                        ? metrics.ctaTexts.slice(0, 3).join(", ")
+                        : "No CTAs detected"
+                    }
+                  />
+                  <MetricsCard
+                    label="Internal Links"
+                    value={metrics.links.internal}
+                  />
+                  <MetricsCard
+                    label="External Links"
+                    value={metrics.links.external}
+                  />
+                  <MetricsCard
+                    label="Images"
+                    value={metrics.images.total}
+                    status={altStatus}
+                    detail={`${metrics.images.missingAlt} missing alt (${metrics.images.missingAltPercent}%)`}
+                  />
+                  <MetricsCard
+                    label="Meta Title"
+                    value={metrics.meta.titleLength}
+                    suffix=" chars"
+                    status={titleLenStatus}
+                    detail={
+                      metrics.meta.title
+                        ? metrics.meta.title.slice(0, 60)
+                        : "No title found"
+                    }
+                  />
+                  <MetricsCard
+                    label="Meta Description"
+                    value={metrics.meta.descriptionLength}
+                    suffix=" chars"
+                    status={descLenStatus}
+                    detail={
+                      metrics.meta.description
+                        ? metrics.meta.description.slice(0, 80) +
+                          (metrics.meta.description.length > 80 ? "..." : "")
+                        : "No description found"
+                    }
+                  />
+                </m.div>
+              </section>
 
-              <h3 className="text-base font-medium mt-6 mb-3">
-                Recommendations
-              </h3>
-              <RecommendationList
-                recommendations={result.analysis.recommendations}
-              />
-            </section>
+              {/* AI Insights & Recommendations — scroll-revealed */}
+              <m.section
+                variants={staggerContainer(0.08)}
+                initial="hidden"
+                whileInView="show"
+                viewport={viewportOnce}
+              >
+                <m.h2
+                  variants={fadeUp}
+                  className="font-display mb-2 text-xl font-bold"
+                >
+                  AI Insights & Recommendations
+                </m.h2>
+                <m.p variants={fadeUp} className="mb-6 text-sm text-muted">
+                  {result.analysis.summary}
+                </m.p>
 
-            {/* Prompt Log */}
-            <section>
-              <PromptLogViewer log={result.promptLog} />
-            </section>
-          </div>
-        )}
+                <m.h3 variants={fadeUp} className="mb-3 text-base font-medium">
+                  Insights
+                </m.h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {result.analysis.insights.map((insight, i) => (
+                    <InsightCard key={i} insight={insight} />
+                  ))}
+                </div>
+
+                <m.h3
+                  variants={fadeUp}
+                  className="mb-3 mt-8 text-base font-medium"
+                >
+                  Recommendations
+                </m.h3>
+                <RecommendationList
+                  recommendations={result.analysis.recommendations}
+                />
+              </m.section>
+
+              {/* Prompt Log — scroll-revealed */}
+              <m.section
+                variants={fadeUp}
+                initial="hidden"
+                whileInView="show"
+                viewport={viewportOnce}
+              >
+                <PromptLogViewer log={result.promptLog} />
+              </m.section>
+            </m.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );
