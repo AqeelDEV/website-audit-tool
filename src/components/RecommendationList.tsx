@@ -1,11 +1,13 @@
 "use client";
 
+import { m } from "motion/react";
 import { Recommendation } from "@/types";
+import { fadeUp, staggerContainer } from "@/lib/animations";
 
 const impactStyles: Record<Recommendation["impact"], string> = {
-  high: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  medium: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  low: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  high: "bg-[var(--status-critical-bg)] text-status-critical",
+  medium: "bg-[var(--status-warning-bg)] text-status-warning",
+  low: "bg-[var(--glow-cyan)] text-accent-cyan",
 };
 
 interface RecommendationListProps {
@@ -18,17 +20,19 @@ export default function RecommendationList({
   const sorted = [...recommendations].sort((a, b) => a.priority - b.priority);
 
   return (
-    <div className="space-y-4">
+    <m.div variants={staggerContainer(0.1)} className="space-y-4">
       {sorted.map((rec, i) => (
-        <div
+        <m.div
           key={i}
-          className="flex gap-4 rounded-lg border border-[var(--border)] bg-[var(--card-bg)] p-5"
+          variants={fadeUp}
+          whileHover={{ x: 4 }}
+          className="glass flex gap-4 rounded-xl p-5 transition-shadow duration-300 hover:shadow-card-hover"
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-gradient text-sm font-bold text-white shadow-glow-violet">
             {rec.priority}
           </div>
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-1">
+            <div className="mb-1 flex flex-wrap items-center gap-2">
               <h3 className="text-base font-semibold">{rec.title}</h3>
               <span
                 className={`rounded-md px-2 py-0.5 text-xs font-medium uppercase ${impactStyles[rec.impact]}`}
@@ -36,15 +40,13 @@ export default function RecommendationList({
                 {rec.impact} impact
               </span>
             </div>
-            <p className="text-sm text-[var(--muted)] leading-relaxed mb-2">
+            <p className="mb-2 text-sm leading-relaxed text-muted">
               {rec.description}
             </p>
-            <p className="text-xs text-[var(--muted)] italic">
-              {rec.reasoning}
-            </p>
+            <p className="text-xs italic text-muted">{rec.reasoning}</p>
           </div>
-        </div>
+        </m.div>
       ))}
-    </div>
+    </m.div>
   );
 }
