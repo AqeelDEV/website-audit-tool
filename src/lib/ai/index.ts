@@ -12,11 +12,14 @@ import { PageMetrics, AIAnalysis, PromptLog } from "@/types";
 import { savePromptLog } from "@/lib/logger";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const MODEL_NAME = "google/gemini-2.0-flash-001";
-const LOG_MODEL_NAME = "google/gemini-2.0-flash-001 (via OpenRouter)";
+const MODEL_NAME = "google/gemini-2.5-flash";
+const LOG_MODEL_NAME = "google/gemini-2.5-flash (via OpenRouter)";
 const MAX_RETRIES = 2;
 const MIN_RETRY_DELAY_MS = 4000;
 const DEFAULT_RETRY_DELAY_S = 60;
+// Cap output so OpenRouter doesn't reserve the model's full 65k limit
+// upfront, which fails the credit check on low-balance keys
+const MAX_OUTPUT_TOKENS = 8000;
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -36,9 +39,10 @@ You will receive structured metrics extracted from a webpage plus a sample of th
 CRITICAL RULES:
 1. Every insight MUST reference specific metrics from the provided data. Do not make claims without citing the numbers.
 2. Respond ONLY with valid JSON matching the exact schema below. No markdown, no backticks, no explanation outside the JSON.
-3. Provide exactly 5 insights — one for each category: seo, messaging, cta, content_depth, ux.
+3. Provide exactly 5 insights, one for each category: seo, messaging, cta, content_depth, ux.
 4. Provide 3 to 5 prioritized recommendations.
 5. Each recommendation's "reasoning" field must tie back to specific metrics from the data.
+6. Write the way a real person talks. Use plain, direct sentences and normal punctuation. Never use em-dashes or en-dashes (— or –); use a comma, a period, or parentheses instead. Skip stock AI phrases like "in today's digital landscape," "it's worth noting," "leverage," or "furthermore." Get to the point.
 
 Response JSON schema:
 {
@@ -138,6 +142,7 @@ async function callOpenRouterWithRetry(
         },
         body: JSON.stringify({
           model: MODEL_NAME,
+          max_tokens: MAX_OUTPUT_TOKENS,
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
