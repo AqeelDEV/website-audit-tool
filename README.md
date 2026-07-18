@@ -62,11 +62,11 @@ AuditResult { metrics, analysis, promptLog } returned to client
 
 **Key separation of concerns:**
 
-- `lib/scraper/` — pure data extraction, no AI. Returns a typed `PageMetrics` object.
-- `lib/ai/` — pure AI orchestration. Takes `PageMetrics`, returns `AIAnalysis` + `PromptLog`. No scraping logic.
-- `lib/logger/` — persistence layer. Swaps between file storage (local) and in-memory (Vercel) based on environment.
-- API routes are thin — they only wire the layers together.
-- UI components are purely presentational — they render what the API returns.
+- `lib/scraper/`: pure data extraction, no AI. Returns a typed `PageMetrics` object.
+- `lib/ai/`: pure AI orchestration. Takes `PageMetrics`, returns `AIAnalysis` + `PromptLog`. No scraping logic.
+- `lib/logger/`: persistence layer. Swaps between file storage (local) and in-memory (Vercel) based on environment.
+- API routes are thin. They only wire the layers together.
+- UI components are purely presentational. They just render what the API returns.
 
 ---
 
@@ -74,11 +74,11 @@ AuditResult { metrics, analysis, promptLog } returned to client
 
 ### Structured input, not raw HTML
 
-The AI never sees raw HTML. The scraper extracts a typed `PageMetrics` object, and the prompt serializes it as clean JSON. This keeps the prompt focused, reproducible, and cost-efficient — Gemini Flash processes ~1,200 input tokens per audit instead of thousands for full HTML.
+The AI never sees raw HTML. The scraper extracts a typed `PageMetrics` object, and the prompt serializes it as clean JSON. This keeps the prompt focused, reproducible, and cost-efficient. Gemini Flash processes about 1,200 input tokens per audit instead of thousands for full HTML.
 
 ### Constrained output schema
 
-The system prompt requires the model to return **only valid JSON** matching an exact schema — no markdown, no prose, no backticks. The schema enforces:
+The system prompt requires the model to return **only valid JSON** matching an exact schema: no markdown, no prose, no backticks. The schema enforces:
 - Exactly 5 insights, one per category (`seo`, `messaging`, `cta`, `content_depth`, `ux`)
 - Each insight must cite specific metric values in `metricReferences`
 - Each recommendation must include `reasoning` tied to the data
@@ -88,11 +88,11 @@ This makes the output directly renderable without fragile parsing.
 
 ### Metric-grounded prompting
 
-The system prompt has an explicit rule: *"Every insight MUST reference specific metrics from the provided data. Do not make claims without citing the numbers."* This prevents generic AI output like "improve your SEO" and forces responses like "93% of images (28/30) are missing alt text — critical for SEO."
+The system prompt has an explicit rule: *"Every insight MUST reference specific metrics from the provided data. Do not make claims without citing the numbers."* This prevents generic AI output like "improve your SEO" and forces responses like "93% of images (28/30) are missing alt text, a critical SEO problem."
 
 ### Model choice
 
-`google/gemini-2.0-flash-001` via OpenRouter — fast, cheap, and follows JSON schema instructions reliably. Flash is appropriate here because the task is structured extraction, not open-ended reasoning.
+`google/gemini-2.0-flash-001` via OpenRouter: fast, cheap, and follows JSON schema instructions reliably. Flash is appropriate here because the task is structured extraction, not open-ended reasoning.
 
 ### Retry with backoff
 
@@ -105,7 +105,7 @@ The AI call layer implements exponential backoff for 429 rate limit errors (up t
 | Decision | Trade-off |
 |---|---|
 | Static HTML scraping (Cheerio) | Fast and zero-cost, but misses JS-rendered content. Sites built entirely in React/Vue may show low word counts or missing elements. |
-| In-memory log storage on Vercel | Simple — no database needed for a demo. But logs reset on cold starts and are not shared across serverless instances. |
+| In-memory log storage on Vercel | Simple, no database needed for a demo. But logs reset on cold starts and are not shared across serverless instances. |
 | Single-page analysis only | Keeps scope focused and responses fast. A multi-page crawl would require a queue, async processing, and significantly more complexity. |
 | Serializing metrics as JSON in the user prompt | Deterministic and easy to verify. Alternatively, a function-calling schema could be used, but adds SDK complexity with no benefit here. |
 | OpenRouter instead of direct Gemini API | Adds one hop but provides a single key for multiple model providers, making it easy to swap models without changing code. |
@@ -114,11 +114,11 @@ The AI call layer implements exponential backoff for 429 rate limit errors (up t
 
 ## What I'd Improve With More Time
 
-- **JS rendering** — Use Playwright or Puppeteer for a headless browser pass, so JS-rendered pages (SPAs) produce accurate metrics
-- **Persistent log storage** — Replace the in-memory Vercel fallback with Vercel KV or a lightweight database so logs survive cold starts and can be listed/reviewed
-- **Audit history** — Store past audits by URL with a comparison view to track improvements over time
-- **Confidence indicators** — Flag when the scraper likely missed content (e.g., word count under 100) so the AI insight is contextualized accordingly
-- **Export** — PDF or JSON export of the full audit report
+- **JS rendering:** Use Playwright or Puppeteer for a headless browser pass, so JS-rendered pages (SPAs) produce accurate metrics
+- **Persistent log storage:** Replace the in-memory Vercel fallback with Vercel KV or a lightweight database so logs survive cold starts and can be listed/reviewed
+- **Audit history:** Store past audits by URL with a comparison view to track improvements over time
+- **Confidence indicators:** Flag when the scraper likely missed content (e.g., word count under 100) so the AI insight is contextualized accordingly
+- **Export:** PDF or JSON export of the full audit report
 
 ---
 
@@ -140,7 +140,7 @@ CRITICAL RULES:
    without citing the numbers.
 2. Respond ONLY with valid JSON matching the exact schema below. No markdown, no backticks,
    no explanation outside the JSON.
-3. Provide exactly 5 insights — one for each category: seo, messaging, cta, content_depth, ux.
+3. Provide exactly 5 insights, one for each category: seo, messaging, cta, content_depth, ux.
 4. Provide 3 to 5 prioritized recommendations.
 5. Each recommendation's "reasoning" field must tie back to specific metrics from the data.
 
